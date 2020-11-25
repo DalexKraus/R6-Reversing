@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "encryption.h"
+
 #define LL (long long)
 typedef uint64_t ptr_t;
 
@@ -33,25 +35,32 @@ inline void swapCoordinates(float* vec) {
     vec[2] = temp;
 }
 
+
+#define OFFSET_GAME_MGR 0x5E019A8  
+#define OFFSET_PROFILE_MGR 0x5E32C50 
+#define OFFSET_ENTITY_LIST 0xB0
+#define OFFSET_ENTITY_LIST_COUNT 0xB8
+#define OFFSET_ENTITY_INFO 0x50
+
 void decryptEntityList(ptr_t* ent_list_dest, ptr_t ent_list_encrypted)
 {
-    *ent_list_dest = ((ent_list_encrypted >> 0xC | ent_list_encrypted << 0x34) + 0xFDF84BE05A7526D4) ^ 0x0CA90740F16A90A3C;
+    ptr_t temp = (ent_list_encrypted + 0x0FFFFFFFFFFFFFFCA);
+    *ent_list_dest = (temp >> 0x11 | temp << 0x2F) + 0x0FFFFFFFFFFFFFFA8;
 }
 
 int getEntityCount()
 {
     ptr_t entListCountEncrypted, entListCountAddr;
-    ptr_t offsetEntListCount = 0xE8;
-    ReadProcessMemory(pHandle, (void*) (gameManager + offsetEntListCount), &entListCountEncrypted, sizeof(entListCountEncrypted), 0);
+    ReadProcessMemory(pHandle, (void*) (gameManager + OFFSET_ENTITY_LIST_COUNT), &entListCountEncrypted, sizeof(entListCountEncrypted), 0);
     decryptEntityList(&entListCountAddr, entListCountEncrypted); // Same encryption mechanism is used
-    return (int) (entListCountAddr ^ 0x18C0000000);    
+    return (int) (entListCountAddr ^ 0x18C0000000);
 }
  
 ptr_t getEntityInfo(ptr_t entityBase)
 {
     ptr_t entityInfoEncrypted;
-    ReadProcessMemory(pHandle, (void*) (entityBase + 0x50), &entityInfoEncrypted, sizeof(ptr_t), 0);
-    return ((entityInfoEncrypted ^ 0x59089C3C53641909) + 0x3E48F409BF6F5A50) ^ 0x155D2A1FBD952158;
+    ReadProcessMemory(pHandle, (void*) (entityBase + OFFSET_ENTITY_INFO), &entityInfoEncrypted, sizeof(ptr_t), 0);
+    return (__ROL8__(entityInfoEncrypted, 1) + 0x0FFFFFFFFFFFFFFAE) ^ 0x845C1A3CE5D1D3B7;
 }
 
 void getEntityBonePosition(ptr_t entityBase, SkeletonBone bone, float* destVec)
@@ -99,9 +108,6 @@ float getViewFOVVertical()
     return fovY;
 }
 
-#define OFFSET_GAME_MGR 0x05E22F70
-#define OFFSET_PROFILE_MGR 07EF0EB8 
-
 int main() 
 {
     HWND windowHandle = FindWindow(NULL, "Rainbow Six");
@@ -113,7 +119,7 @@ int main()
     if (!pHandle) return -1;
 
     // Overlay
-    ptr_t overlayPlayerArrayAddr = 0x1b3e8ffb9e0;
+    ptr_t overlayPlayerArrayAddr = 0x1e1bbbcc3a0;
     windowHandle = FindWindow(NULL, "Z:\\C++\\LxCrystal\\Overlay\\build\\Debug\\OpenBook.exe");
     if (!windowHandle) return -1;
     GetWindowThreadProcessId(windowHandle, &pid);
@@ -126,16 +132,15 @@ int main()
     }
  
     // Game's base address
-    uint64_t base = 0x7FF64EDF0000;
+    uint64_t base = 0x7FF687DF0000;
    
     // Read game manager
     ReadProcessMemory(pHandle, (void*) (base + OFFSET_GAME_MGR), &gameManager, sizeof(ptr_t), 0);
     printf("[+] GameManager (Heap): %llx\n", LL gameManager);
 
     // Read profile manager
-    ptr_t offsetProfileManager = 0x5E316E0;
-    ReadProcessMemory(pHandle, (void*) (base + offsetProfileManager), &profileManager, sizeof(ptr_t), 0);
-    printf("[+] ProfileManager (Heap): %llx %llx\n", LL profileManager, LL (base + offsetProfileManager));
+    ReadProcessMemory(pHandle, (void*) (base + OFFSET_PROFILE_MGR), &profileManager, sizeof(ptr_t), 0);
+    printf("[+] ProfileManager (Heap): %llx %llx\n", LL profileManager, LL (base + OFFSET_PROFILE_MGR));
 
     // Read game camera
     ptr_t temp;
@@ -149,8 +154,7 @@ int main()
 
     // Ent list
     uint64_t entityListEncrypted, entityList;
-    uint64_t offsetEntList = 0xE0;
-    ReadProcessMemory(pHandle, (void*) (gameManager + offsetEntList), &entityListEncrypted, sizeof(entityListEncrypted), 0);
+    ReadProcessMemory(pHandle, (void*) (gameManager + OFFSET_ENTITY_LIST), &entityListEncrypted, sizeof(entityListEncrypted), 0);
     decryptEntityList(&entityList, entityListEncrypted);
     printf("[?] EntList (Enc): %llx\n", LL entityListEncrypted);
     printf("[+] EntList (Dec): %llx\n", LL entityList);
@@ -176,10 +180,11 @@ int main()
             ptr_t entity;
             ReadProcessMemory(pHandle, (void*) (entityList + 0x8 * idx), &entity, sizeof(entity), 0);
 
+            ptr_t entityInfo = getEntityInfo(entity);
             getEntityBonePosition(entity, Bone_Head, currentPlayer.headPos);
             currentPlayer.health = getEntityHealth(entity);
             WriteProcessMemory(pOverlay, (void*) (overlayPlayerArrayAddr + (sizeof(Player_t) * (1 + idx))), &currentPlayer, sizeof(Player_t), 0);
-            printf("Entity %d: Bone: %f %f %f Health: %d\n", idx, currentPlayer.headPos[0], currentPlayer.headPos[1], currentPlayer.headPos[2], currentPlayer.health);
+            printf("Entity %d: Info: %llx Bone: %f %f %f Health: %d\n", idx, LL entityInfo, currentPlayer.headPos[0], currentPlayer.headPos[1], currentPlayer.headPos[2], currentPlayer.health);
         }
     }
     
