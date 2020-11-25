@@ -1,0 +1,24 @@
+#ifndef LX_VAO_H
+#define LX_VAO_H
+
+#include "lx.hpp"
+
+struct lxVaoData
+{
+    GLuint id;
+    GLuint iboId;
+};
+typedef struct lxVaoData* lxVao;
+
+// Create / Destroy functions
+lxVao       lxVaoCreate();
+void        lxVaoDestroy(lxVao vao);
+
+// VAO functions
+void        lxVaoStoreData(lxVao vao, int attrIdx, GLfloat* data, size_t dataSize, int dimension, bool dynamic);
+void        lxVaoStoreIndicesList(lxVao vao, GLuint* data, size_t dataSize, int indicesCount, bool dynamic);
+
+void lxVaoBind(lxVao vao);
+void lxVaoUnbind();
+
+#endif
