@@ -61,11 +61,11 @@ ptr_t getEntityInfo(ptr_t entityBase)
 	/*
 		The entity info pointer is encrypted and is decrypted by the following operations:
 		RainbowSix!GameBlocks::GBPredefinedId::operator=+0x1e112d4:
-		00007ff6`8a255040       mov     rcx, qword ptr [rax]	; Load encrypted pointer
-		00007ff6`8a255044       rol     rcx, 1					; rotate rcx by one bit to the left
+		00007ff6`8a255040       mov     rcx, qword ptr [rax]    ; Load encrypted pointer
+		00007ff6`8a255044       rol     rcx, 1                  ; rotate rcx by one bit to the left
 		00007ff6`8a255047       add     rcx, 0FFFFFFFFFFFFFFAEh ; Add the value 0x0FFFFFFFFFFFFFFAE to the pointer
-		00007ff6`8a25504b  		mov 	rax, 845C1A3CE5D1D3B7h	; rax = key2
-		00007ff6`8a255055       xor     rax, rcx				; Finally, decrypt using the key2 inside the rax register
+		00007ff6`8a25504b       mov     rax, 845C1A3CE5D1D3B7h  ; rax = key2
+		00007ff6`8a255055       xor     rax, rcx                ; Finally, decrypt using the key2 inside the rax register
 		00007ff6`8a255058       ret
 	 */
     ptr_t entityInfoEncrypted;
