@@ -3,7 +3,8 @@
 Disclaimer: **THIS IS NOT READY TO PASTE - YOU WILL BE BANNED!**
 
 
-Last updated for: **Operation Shadow Legacy**
+Last updated for: **Operation Shadow Legacy 25.11.2020**
+
 
 ## How it Works
 Important information (ESP, health, tracers) are shown inside an overlay which hovers over the actual game window.
